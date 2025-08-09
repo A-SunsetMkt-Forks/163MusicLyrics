@@ -88,6 +88,7 @@ for target in "${targets[@]}"; do
     --self-contained true \
     -p:DebugType=None \
     -p:PublishSingleFile=true \
+    -p:ApplicationIcon=Resources\\app-logo.ico \
     -p:IncludeNativeLibrariesForSelfExtract=true \
     -o "$output_dir"
 
