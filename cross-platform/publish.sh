@@ -16,6 +16,7 @@ project_path="./MusicLyricApp/MusicLyricApp.csproj"
 output_root="publish"
 
 targets=(
+  "win-x86"
   "win-x64"
   "linux-x64"
   "osx-x64"
