@@ -149,13 +149,23 @@ public static partial class GlobalUtils
                 return Regex.Replace(input, @"playsong\.html\?songid=[^&]*(&.*)?$", replacement + songId);
             }
 
-            // 处理专辑ID链接
-            var albumIdMatch = Regex.Match(input, @"album\.html\?albummid=([^&]*)(&.*)?$");
-            if (albumIdMatch.Success)
+            // 处理专辑ID链接 (albummid格式)
+            var albumIdMatch1 = Regex.Match(input, @"album\.html\?albummid=([^&]*)(&.*)?$");
+            if (albumIdMatch1.Success)
             {
-                var albumId = albumIdMatch.Groups[1].Value;
+                var albumId = albumIdMatch1.Groups[1].Value;
                 var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.ALBUM_ID];
                 return Regex.Replace(input, @"album\.html\?albummid=[^&]*(&.*)?$", replacement + albumId);
+            }
+            
+            // 处理专辑ID链接 (albumId格式)
+            var albumIdMatch2 = Regex.Match(input, @"album\.html\?(.*&)?albumId=([^&]*)(&.*)?$");
+            if (albumIdMatch2.Success)
+            {
+                var albumId = albumIdMatch2.Groups[2].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.ALBUM_ID];
+                // 构建替换部分，保留?后albumId前的参数，然后替换为albumDetail页面
+                return Regex.Replace(input, @"album\.html\?.*albumId=[^&]*(&.*)?$", replacement + albumId + "$1");
             }
 
             // 处理播放列表ID链接

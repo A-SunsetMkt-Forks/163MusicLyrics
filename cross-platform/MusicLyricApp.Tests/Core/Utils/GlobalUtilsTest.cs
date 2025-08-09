@@ -10,46 +10,41 @@ public class GlobalUtilsTest
     [Fact]
     public void TestConvertSearchWithShareLink_SongId()
     {
-        // Arrange
-        var searchSource = SearchSourceEnum.QQ_MUSIC;
-        var input = "https://i.y.qq.com/v8/playsong.html?songid=107762031&songtype=0#webchat_redirect";
-        var expected = "https://i.y.qq.com/v8/songDetail/107762031";
+        var origin = "https://i.y.qq.com/v8/playsong.html?songid=107762031&songtype=0#webchat_redirect";
+        var target = "https://i.y.qq.com/v8/songDetail/107762031";
 
-        // Act
-        var actual = GlobalUtils.ConvertSearchWithShareLink(searchSource, input);
-
-        // Assert
-        Assert.Equal(expected, actual);
+        Assert.Equal(target, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.QQ_MUSIC, origin));
+        Assert.Equal(origin, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.NET_EASE_MUSIC, origin));
     }
 
     [Fact]
     public void TestConvertSearchWithShareLink_AlbumId()
     {
-        // Arrange
-        var searchSource = SearchSourceEnum.QQ_MUSIC;
-        var input = "https://i.y.qq.com/n2/m/share/details/album.html?albummid=003RL1Hk0lf62Q";
-        var expected = "https://i.y.qq.com/n2/m/share/details/albumDetail/003RL1Hk0lf62Q";
+        var origin = "https://i.y.qq.com/n2/m/share/details/album.html?albummid=003RL1Hk0lf62Q";
+        var target = "https://i.y.qq.com/n2/m/share/details/albumDetail/003RL1Hk0lf62Q";
 
-        // Act
-        var actual = GlobalUtils.ConvertSearchWithShareLink(searchSource, input);
+        Assert.Equal(target, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.QQ_MUSIC, origin));
+        Assert.Equal(origin, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.NET_EASE_MUSIC, origin));
+    }
+    
+    [Fact]
+    public void TestConvertSearchWithShareLink_AlbumId2()
+    {
+        var origin = "https://i.y.qq.com/n2/m/share/details/album.html?ADTAG=pc_v17&albumId=36316266&channelId=10036163&openinqqmusic=1";
+        var target = "https://i.y.qq.com/n2/m/share/details/albumDetail/36316266&channelId=10036163&openinqqmusic=1";
 
-        // Assert
-        Assert.Equal(expected, actual);
+        Assert.Equal(target, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.QQ_MUSIC, origin));
+        Assert.Equal(origin, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.NET_EASE_MUSIC, origin));
     }
 
     [Fact]
     public void TestConvertSearchWithShareLink_PlaylistId()
     {
-        // Arrange
-        var searchSource = SearchSourceEnum.QQ_MUSIC;
-        var input = "https://i.y.qq.com/n2/m/share/details/taoge.html?id=7581901981&hosteuin=";
-        var expected = "https://i.y.qq.com/n2/m/share/details/playlist/7581901981";
+        var origin = "https://i.y.qq.com/n2/m/share/details/taoge.html?id=7581901981&hosteuin=";
+        var target = "https://i.y.qq.com/n2/m/share/details/playlist/7581901981";
 
-        // Act
-        var actual = GlobalUtils.ConvertSearchWithShareLink(searchSource, input);
-
-        // Assert
-        Assert.Equal(expected, actual);
+        Assert.Equal(target, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.QQ_MUSIC, origin));
+        Assert.Equal(origin, GlobalUtils.ConvertSearchWithShareLink(SearchSourceEnum.NET_EASE_MUSIC, origin));
     }
 
     [Fact]
