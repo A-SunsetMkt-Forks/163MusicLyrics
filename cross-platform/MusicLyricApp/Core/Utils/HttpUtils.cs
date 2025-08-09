@@ -86,6 +86,13 @@ public static class HttpUtils
     public static string HttpGet(string url, string contentType = "application/json",
         Dictionary<string, string> headers = null)
     {
+        var response = HttpGet0(url, contentType, headers);
+        return response.Content.ReadAsStringAsync().Result;
+    }
+
+    public static HttpResponseMessage HttpGet0(string url, string contentType = "application/json",
+        Dictionary<string, string> headers = null)
+    {
         using (HttpClient client = new HttpClient())
         {
             if (contentType != null)
@@ -96,8 +103,7 @@ public static class HttpUtils
                     client.DefaultRequestHeaders.Add(header.Key, header.Value);
             }
 
-            HttpResponseMessage response = client.GetAsync(url).Result;
-            return response.Content.ReadAsStringAsync().Result;
+            return client.GetAsync(url).Result;
         }
     }
 

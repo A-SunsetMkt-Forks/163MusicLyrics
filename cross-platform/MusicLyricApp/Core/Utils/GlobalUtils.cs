@@ -5,8 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using MusicLyricApp.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NLog;
 
 namespace MusicLyricApp.Core.Utils;
@@ -80,6 +78,8 @@ public static partial class GlobalUtils
             searchSource = pair.Key;
         }
 
+        input = ConvertSearchWithShareLink(searchSource, input);
+
         // 自动识别搜索类型
         foreach (var pair in SearchTypeKeywordDict[searchSource].Where(pair => input.Contains(pair.Value)))
         {
@@ -122,33 +122,53 @@ public static partial class GlobalUtils
         // QQ 音乐，歌曲短链接
         if (searchSource == SearchSourceEnum.QQ_MUSIC && input.Contains("fcgi-bin/u"))
         {
-            const string keyword = "window.__ssrFirstPageData__";
-            var html = HttpUtils.HttpGet(input);
-
-            var indexOf = html.IndexOf(keyword);
-
-            if (indexOf != -1)
+            var response = HttpUtils.HttpGet0(input);
+            if (response is { IsSuccessStatusCode: true, RequestMessage: not null } && response.RequestMessage.RequestUri != null)
             {
-                var endIndexOf = html.IndexOf("</script>", indexOf);
-                if (endIndexOf != -1)
-                {
-                    var data = html.Substring(indexOf + keyword.Length, endIndexOf - indexOf - keyword.Length);
+                var redirectUrl = response.RequestMessage.RequestUri.AbsoluteUri;
+                return CheckInputId(redirectUrl, searchSource, searchType);
+            }
+        }
+        
+        Logger.Warn("GlobalUtils#CheckInputId INPUT_ID_ILLEGAL, input: " + input);
 
-                    data = data.Trim()[1..];
+        throw new MusicLyricException(ErrorMsgConst.INPUT_ID_ILLEGAL);
+    }
 
-                    var obj = (JObject)JsonConvert.DeserializeObject(data);
+    public static string ConvertSearchWithShareLink(SearchSourceEnum searchSource, string input)
+    {
+        // 只处理QQ音乐
+        if (searchSource == SearchSourceEnum.QQ_MUSIC)
+        {
+            // 处理歌曲ID链接
+            var songIdMatch = Regex.Match(input, @"playsong\.html\?songid=([^&]*)(&.*)?$");
+            if (songIdMatch.Success)
+            {
+                var songId = songIdMatch.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.SONG_ID];
+                return Regex.Replace(input, @"playsong\.html\?songid=[^&]*(&.*)?$", replacement + songId);
+            }
 
-                    var songs = obj["songList"].ToObject<QQMusicBean.Song[]>();
+            // 处理专辑ID链接
+            var albumIdMatch = Regex.Match(input, @"album\.html\?albummid=([^&]*)(&.*)?$");
+            if (albumIdMatch.Success)
+            {
+                var albumId = albumIdMatch.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.ALBUM_ID];
+                return Regex.Replace(input, @"album\.html\?albummid=[^&]*(&.*)?$", replacement + albumId);
+            }
 
-                    if (songs.Length > 0)
-                    {
-                        return new InputSongId(songs[0].Id, searchSource, searchType);
-                    }
-                }
+            // 处理播放列表ID链接
+            var playlistIdMatch = Regex.Match(input, @"taoge\.html\?id=([^&]*)(&.*)?$");
+            if (playlistIdMatch.Success)
+            {
+                var playlistId = playlistIdMatch.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.PLAYLIST_ID];
+                return Regex.Replace(input, @"taoge\.html\?id=[^&]*(&.*)?$", replacement + playlistId);
             }
         }
 
-        throw new MusicLyricException(ErrorMsgConst.INPUT_ID_ILLEGAL);
+        return input;
     }
 
     /**
