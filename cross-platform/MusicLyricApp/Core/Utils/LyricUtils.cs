@@ -813,7 +813,7 @@ public static partial class LyricUtils
         }
     }
 
-    [GeneratedRegex(@"\[\d+:\d+(?:\.\d+)?\]")]
+    [GeneratedRegex(LyricLineVo.TimestampPattern)]
     private static partial Regex GetCommonLegalPrefixRegex();
 
     [GeneratedRegex(@"\[\d+,\d+\]")]

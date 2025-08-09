@@ -448,38 +448,110 @@ public class LyricTimestamp : IComparable
     /// <summary>
     /// 初始化 LyricTimestamp
     /// </summary>
-    /// <param name="timestamp">[mm:ss.SSS] or [mm:ss]</param>
+    /// <param name="timestamp">支持的格式: [mm:ss]、[mm:ss.S]、[mm:ss.SS]、[mm:ss.SSS]、[mm:ss:SS]、[mm:ss:SSS]</param>
     public LyricTimestamp(string timestamp)
     {
-        if (string.IsNullOrWhiteSpace(timestamp) || timestamp[0] != '[' || timestamp[timestamp.Length - 1] != ']')
+        long timeOffset = 0; // 默认值
+        
+        if (!string.IsNullOrWhiteSpace(timestamp) && timestamp[0] == '[' && timestamp[timestamp.Length - 1] == ']')
         {
-            // 不支持的格式
-            TimeOffset = 0;
-        }
-        else
-        {
-            timestamp = timestamp.Substring(1, timestamp.Length - 2);
-
-            var split = timestamp.Split(':');
-
-            var minute = GlobalUtils.ToInt(split[0], 0);
-
-            int second = 0, millisecond = 0;
-            if (split.Length > 1)
+            // 移除首尾的方括号
+            string content = timestamp.Substring(1, timestamp.Length - 2);
+            
+            // 首先按冒号分割
+            string[] parts = content.Split(':');
+            
+            if (parts.Length >= 2)
             {
-                split = split[1].Split('.');
-
-                second = GlobalUtils.ToInt(split[0], 0);
-
-                if (split.Length > 1)
+                // 解析分钟
+                int minute = GlobalUtils.ToInt(parts[0], 0);
+                
+                // 解析秒和可能的毫秒
+                int second = 0;
+                int millisecond = 0;
+                
+                if (parts.Length == 2)
                 {
-                    // 三位毫秒，右填充 0
-                    millisecond = GlobalUtils.ToInt(split[1].PadRight(3, '0'), 0);
+                    // 格式可能是 [mm:ss] 或 [mm:ss.S] 或 [mm:ss.SS] 或 [mm:ss.SSS]
+                    string secondPart = parts[1];
+                    if (secondPart.Contains('.'))
+                    {
+                        // 点号分隔的秒和毫秒
+                        string[] secondMsParts = secondPart.Split('.');
+                        second = GlobalUtils.ToInt(secondMsParts[0], 0);
+                        
+                        if (secondMsParts.Length > 1)
+                        {
+                            string msStr = secondMsParts[1];
+                            // 根据毫秒字符串长度处理
+                            if (msStr.Length == 1)
+                            {
+                                // [mm:ss.S] 格式，将单位数毫秒转换为毫秒数
+                                millisecond = GlobalUtils.ToInt(msStr, 0) * 100;
+                            }
+                            else if (msStr.Length == 2)
+                            {
+                                // [mm:ss.SS] 格式，将两位数毫秒转换为毫秒数
+                                millisecond = GlobalUtils.ToInt(msStr, 0) * 10;
+                            }
+                            else
+                            {
+                                // [mm:ss.SSS] 格式或更长，只取前3位
+                                if (msStr.Length > 3)
+                                {
+                                    msStr = msStr.Substring(0, 3);
+                                }
+                                millisecond = GlobalUtils.ToInt(msStr, 0);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 只有秒部分 [mm:ss] 格式
+                        second = GlobalUtils.ToInt(secondPart, 0);
+                    }
                 }
+                else if (parts.Length == 3)
+                {
+                    // 格式是 [mm:ss:SS] 或 [mm:ss:SSS]，冒号分隔的秒和毫秒
+                    second = GlobalUtils.ToInt(parts[1], 0);
+                    
+                    string msStr = parts[2];
+                    // 根据毫秒字符串长度处理
+                    if (msStr.Length == 1)
+                    {
+                        // [mm:ss:S] 格式，将单位数毫秒转换为毫秒数
+                        millisecond = GlobalUtils.ToInt(msStr, 0) * 100;
+                    }
+                    else if (msStr.Length == 2)
+                    {
+                        // [mm:ss:SS] 格式，将两位数毫秒转换为毫秒数
+                        millisecond = GlobalUtils.ToInt(msStr, 0) * 10;
+                    }
+                    else
+                    {
+                        // [mm:ss:SSS] 格式或更长，只取前3位
+                        if (msStr.Length > 3)
+                        {
+                            msStr = msStr.Substring(0, 3);
+                        }
+                        millisecond = GlobalUtils.ToInt(msStr, 0);
+                    }
+                }
+                
+                // 计算总毫秒数
+                timeOffset = (minute * 60 + second) * 1000 + millisecond;
             }
-
-            TimeOffset = (minute * 60 + second) * 1000 + millisecond;
+            else if (parts.Length == 1)
+            {
+                // 只有分钟部分 [mm] 格式
+                int minute = GlobalUtils.ToInt(parts[0], 0);
+                timeOffset = minute * 60 * 1000;
+            }
         }
+        
+        // 设置最终的TimeOffset值
+        TimeOffset = timeOffset;
     }
 
     public int CompareTo(object input)
@@ -604,6 +676,11 @@ public class LyricTimestamp : IComparable
 /// </summary>
 public class LyricLineVo : IComparable
 {
+    /// <summary>
+    /// 公共时间戳正则表达式模式，匹配 [mm:ss] 或 [mm:ss.SSS] 或 [mm:ss:SSS] 格式
+    /// </summary>
+    public const string TimestampPattern = @"\[\d+:\d+(?:[.:]\d+)?]";
+    
     public LyricTimestamp Timestamp { get; set; }
 
     /// <summary>
@@ -635,10 +712,8 @@ public class LyricLineVo : IComparable
 
     public static List<LyricLineVo> Split(LyricLineVo main)
     {
-        const string timestampPattern = @"\[\d+:\d+.\d+]";
-
         var mainContent = main.Content;
-        var mc = Regex.Matches(mainContent, timestampPattern);
+        var mc = Regex.Matches(mainContent, TimestampPattern);
 
         // not exist sub
         if (mc.Count == 0)
