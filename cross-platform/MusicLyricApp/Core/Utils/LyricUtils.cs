@@ -272,7 +272,7 @@ public static partial class LyricUtils
     {
         var outputLyricsTypes = settingBean.Config.DeserializationOutputLyricsTypes();
         var showLrcType = settingBean.Param.ShowLrcType;
-        var searchSource = settingBean.Param.SearchSource;
+        var searchSource = lyricVo.SearchSource;
         var ignoreEmptyLyric = settingBean.Config.IgnoreEmptyLyric;
 
         var res = new List<List<LyricLineVo>>();
