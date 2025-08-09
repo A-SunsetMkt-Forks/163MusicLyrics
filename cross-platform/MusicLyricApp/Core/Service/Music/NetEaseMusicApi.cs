@@ -118,7 +118,7 @@ public class NetEaseMusicApi(Func<string> cookieFunc) : MusicCacheableApi
 
         if (datum?.Url == null)
         {
-            return ResultVo<string>.Failure(ErrorMsgConst.SONG_URL_GET_SUCCESS);
+            return ResultVo<string>.Failure(ErrorMsgConst.SONG_URL_GET_FAILED);
         }
         else
         {
