@@ -361,6 +361,9 @@ public static partial class GlobalUtils
 
     private static string ControlLength(string str)
     {
+        if (string.IsNullOrEmpty(str))
+            return string.Empty;
+        
         if (str.Length > 128)
         {
             return str[..125] + "...";
