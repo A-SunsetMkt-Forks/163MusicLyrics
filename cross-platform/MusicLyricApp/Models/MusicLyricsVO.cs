@@ -722,8 +722,8 @@ public class LyricLineVo : IComparable
 
     public LyricLineVo(string lyricLine)
     {
-        if (LyricUtils.VerbatimLegalPrefixRegex.IsMatch(lyricLine) ||
-            LyricUtils.CommonLegalPrefixRegex.IsMatch(lyricLine))
+        if (VerbatimLyricUtils.GetVerbatimLegalPrefixRegex().IsMatch(lyricLine) ||
+            LyricUtils.GetCommonLegalPrefixRegex().IsMatch(lyricLine))
         {
             var index = lyricLine.IndexOf("]", StringComparison.Ordinal);
             Timestamp = new LyricTimestamp(lyricLine[..(index + 1)]);
