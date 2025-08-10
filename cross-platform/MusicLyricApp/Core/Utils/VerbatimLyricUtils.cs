@@ -199,4 +199,47 @@ public static partial class VerbatimLyricUtils
 
         return sb.ToString();
     }
+    
+    /// <summary>
+    /// 将普通逐字 LRC 转为 A2 增强扩展格式
+    /// </summary>
+    public static string ConvertVerbatimLyricFromBasicToA2Mode(string lrcLine)
+    {
+        if (string.IsNullOrWhiteSpace(lrcLine))
+            return lrcLine;
+
+        var matches = LyricUtils.GetCommonLegalPrefixRegex().Matches(lrcLine);
+
+        if (matches.Count == 0)
+            return lrcLine;
+
+        var result = "";
+        var lastIndex = 0;
+        var firstTime = true;
+
+        foreach (Match match in matches)
+        {
+            var time = match.Groups[0].Value.Trim('[', ']');
+
+            // 添加前面的歌词部分（去掉时间戳）
+            result += lrcLine.Substring(lastIndex, match.Index - lastIndex);
+
+            if (firstTime)
+            {
+                // 行首时间戳用方括号
+                result += $"[{time}]";
+                firstTime = false;
+            }
+
+            // 每个字前加尖括号时间戳
+            result += $"<{time}>";
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        // 添加剩余的歌词文本
+        result += lrcLine[lastIndex..];
+
+        return result;
+    }
 }

@@ -74,7 +74,7 @@ public class SearchService(SettingBean settingBean) : ISearchService
 
     public Dictionary<string, ResultVo<SaveVo>> SearchSongs(List<InputSongId> inputSongIds, SettingBean settingBean)
     {
-        var isVerbatimLyric = settingBean.Config.EnableVerbatimLyric;
+        var isVerbatimLyric = settingBean.Config.VerbatimLyricMode != VerbatimLyricModeEnum.DISABLE;
 
         var resultDict = new Dictionary<string, ResultVo<SaveVo>>();
 

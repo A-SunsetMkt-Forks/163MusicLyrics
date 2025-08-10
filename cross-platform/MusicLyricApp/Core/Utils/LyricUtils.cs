@@ -38,7 +38,7 @@ public static partial class LyricUtils
 
         var voListList = await FormatLyric(lyricVo, settingBean);
 
-        if (config.EnableVerbatimLyric)
+        if (config.VerbatimLyricMode != VerbatimLyricModeEnum.DISABLE)
         {
             for (var i = 0; i < voListList.Count; i++)
             {
@@ -57,7 +57,13 @@ public static partial class LyricUtils
             }
             else
             {
-                line = string.Join(Environment.NewLine,  from o in voList select o.Print(timestampFormat, dotType));
+                line = string.Join(Environment.NewLine, 
+                    from o in voList
+                    let printed = o.Print(timestampFormat, dotType)
+                    select config.VerbatimLyricMode == VerbatimLyricModeEnum.A2_MODE
+                        ? VerbatimLyricUtils.ConvertVerbatimLyricFromBasicToA2Mode(printed)
+                        : printed
+                );
             }
 
             line = config.ChineseProcessRule switch

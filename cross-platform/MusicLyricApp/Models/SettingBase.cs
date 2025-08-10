@@ -24,9 +24,9 @@ public class ConfigBean
     public string SrtTimestampFormat = "HH:mm:ss,SSS";
 
     /// <summary>
-    /// 启用逐字歌词模式
+    /// 逐字歌词模式
     /// </summary>
-    public bool EnableVerbatimLyric = false;
+    public VerbatimLyricModeEnum VerbatimLyricMode = VerbatimLyricModeEnum.DISABLE;
 
     /// <summary>
     /// 忽略空的歌词行

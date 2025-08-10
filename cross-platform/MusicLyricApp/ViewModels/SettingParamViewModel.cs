@@ -93,11 +93,19 @@ public partial class SettingParamViewModel : ViewModelBase
     }
     
     // 8. SRT 时间戳
-    [ObservableProperty] private bool _enableVerbatimLyric;
+    public ObservableCollection<EnumDisplayHelper.EnumDisplayItem<VerbatimLyricModeEnum>> VerbatimLyricMode { get; } =
+        EnumDisplayHelper.GetEnumDisplayCollection<VerbatimLyricModeEnum>();
     
-    partial void OnEnableVerbatimLyricChanged(bool value)
+    [ObservableProperty]
+    private EnumDisplayHelper.EnumDisplayItem<VerbatimLyricModeEnum> _selectedVerbatimLyricModeItem;
+
+    public VerbatimLyricModeEnum SelectedTVerbatimLyricMode => SelectedVerbatimLyricModeItem?.Value ?? default;
+    
+    partial void OnSelectedVerbatimLyricModeItemChanged(
+        EnumDisplayHelper.EnumDisplayItem<VerbatimLyricModeEnum>? oldValue,
+        EnumDisplayHelper.EnumDisplayItem<VerbatimLyricModeEnum>? newValue)
     {
-        _settingBean.Config.EnableVerbatimLyric = value;
+        if (newValue != null) _settingBean.Config.VerbatimLyricMode = newValue.Value;
     }
     
     // 9. 译文匹配精度
@@ -217,7 +225,7 @@ public partial class SettingParamViewModel : ViewModelBase
         LrcTimestampFormat = _settingBean.Config.LrcTimestampFormat;
         SrtTimestampFormat = _settingBean.Config.SrtTimestampFormat;
         IgnoreEmptyLyric = _settingBean.Config.IgnoreEmptyLyric;
-        EnableVerbatimLyric = _settingBean.Config.EnableVerbatimLyric;
+        SelectedVerbatimLyricModeItem = VerbatimLyricMode.First(item => Equals(item.Value, _settingBean.Config.VerbatimLyricMode));
         MatchPrecisionDeviation = _settingBean.Config.TransConfig.MatchPrecisionDeviation;
         BaiduAppId = _settingBean.Config.TransConfig.BaiduTranslateAppId;
         BaiduSecret =  _settingBean.Config.TransConfig.BaiduTranslateSecret;

@@ -31,6 +31,13 @@ public enum SearchTypeEnum
     [Description("歌单")] PLAYLIST_ID = 2,
 }
 
+public enum VerbatimLyricModeEnum
+{
+    [Description("不启用")] DISABLE = 0,
+    [Description("标准模式")] STANDARD_MODE = 1,
+    [Description("A2 模式")] A2_MODE = 2,
+}
+
 // 强制两位类型
 public enum DotTypeEnum
 {
