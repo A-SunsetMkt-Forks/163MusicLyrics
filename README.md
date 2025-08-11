@@ -73,6 +73,9 @@ maintained personally, all features are free. If you would like to treat the cre
 
 | username     | donate    | platform | date       |
 |:-------------|:----------|:-------|:-----------|
+| 晓风雅月   | 6.66 CNY     | wechat | 2025-06-18 |
+| *🧙   | 9 CNY     | wechat | 2025-06-17 |
+| C*n   | 5 CNY     | wechat | 2025-06-12 |
 | 星幻丶碎梦   | 39 CNY     | wechat | 2025-06-07 |
 | 四眼崩牙仔   | 10 CNY     | alipay | 2025-06-07 |
 | ringo   | 5 CNY     | wechat | 2025-06-06 |
