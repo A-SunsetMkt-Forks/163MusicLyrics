@@ -74,7 +74,7 @@ public class StorageService : IStorageService
                 }
                 else
                 {
-                    return ErrorMsgConst.SONG_URL_GET_FAILED;
+                    return link.ErrorMsg;
                 }
             default:
                 var csv = new CsvBean();

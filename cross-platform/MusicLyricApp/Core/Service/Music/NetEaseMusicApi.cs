@@ -118,7 +118,7 @@ public class NetEaseMusicApi(Func<string> cookieFunc) : MusicCacheableApi
 
         if (datum?.Url == null)
         {
-            return ResultVo<string>.Failure(ErrorMsgConst.SONG_URL_GET_SUCCESS);
+            return ResultVo<string>.Failure(ErrorMsgConst.SONG_URL_GET_FAILED);
         }
         else
         {
@@ -144,7 +144,7 @@ public class NetEaseMusicApi(Func<string> cookieFunc) : MusicCacheableApi
         {
             if (resp.Yrc != null)
             {
-                vo.Lyric = LyricUtils.DealVerbatimLyric4NetEaseMusic(resp.Yrc.Lyric);
+                vo.Lyric = VerbatimLyricUtils.DealVerbatimLyric4NetEaseMusic(resp.Yrc.Lyric);
             }
             // not support translate && Transliteration in common mode
         }

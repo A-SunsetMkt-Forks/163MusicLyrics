@@ -5,13 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using MusicLyricApp.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NLog;
 
 namespace MusicLyricApp.Core.Utils;
 
-public static class GlobalUtils
+public static partial class GlobalUtils
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -80,6 +78,8 @@ public static class GlobalUtils
             searchSource = pair.Key;
         }
 
+        input = ConvertSearchWithShareLink(searchSource, input);
+
         // 自动识别搜索类型
         foreach (var pair in SearchTypeKeywordDict[searchSource].Where(pair => input.Contains(pair.Value)))
         {
@@ -93,7 +93,7 @@ public static class GlobalUtils
         }
 
         // QQ 音乐，数字+字母，直接通过
-        if (searchSource == SearchSourceEnum.QQ_MUSIC && Regex.IsMatch(input, @"^[a-zA-Z0-9]*$"))
+        if (searchSource == SearchSourceEnum.QQ_MUSIC && LettersAndNumbersRegex().IsMatch(input))
         {
             return new InputSongId(input, searchSource, searchType);
         }
@@ -104,7 +104,7 @@ public static class GlobalUtils
         if (index != -1)
         {
             var sb = new StringBuilder();
-            foreach (var c in input.Substring(index + urlKeyword.Length).ToCharArray())
+            foreach (var c in input[(index + urlKeyword.Length)..])
             {
                 if (char.IsLetterOrDigit(c))
                 {
@@ -122,33 +122,63 @@ public static class GlobalUtils
         // QQ 音乐，歌曲短链接
         if (searchSource == SearchSourceEnum.QQ_MUSIC && input.Contains("fcgi-bin/u"))
         {
-            const string keyword = "window.__ssrFirstPageData__";
-            var html = HttpUtils.HttpGet(input);
-
-            var indexOf = html.IndexOf(keyword);
-
-            if (indexOf != -1)
+            var response = HttpUtils.HttpGet0(input);
+            if (response is { IsSuccessStatusCode: true, RequestMessage: not null } && response.RequestMessage.RequestUri != null)
             {
-                var endIndexOf = html.IndexOf("</script>", indexOf);
-                if (endIndexOf != -1)
-                {
-                    var data = html.Substring(indexOf + keyword.Length, endIndexOf - indexOf - keyword.Length);
+                var redirectUrl = response.RequestMessage.RequestUri.AbsoluteUri;
+                return CheckInputId(redirectUrl, searchSource, searchType);
+            }
+        }
+        
+        Logger.Warn("GlobalUtils#CheckInputId INPUT_ID_ILLEGAL, input: " + input);
 
-                    data = data.Trim().Substring(1);
+        throw new MusicLyricException(ErrorMsgConst.INPUT_ID_ILLEGAL);
+    }
 
-                    var obj = (JObject)JsonConvert.DeserializeObject(data);
+    public static string ConvertSearchWithShareLink(SearchSourceEnum searchSource, string input)
+    {
+        // 只处理QQ音乐
+        if (searchSource == SearchSourceEnum.QQ_MUSIC)
+        {
+            // 处理歌曲ID链接
+            var songIdMatch = Regex.Match(input, @"playsong\.html\?songid=([^&]*)(&.*)?$");
+            if (songIdMatch.Success)
+            {
+                var songId = songIdMatch.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.SONG_ID];
+                return Regex.Replace(input, @"playsong\.html\?songid=[^&]*(&.*)?$", replacement + songId);
+            }
 
-                    var songs = obj["songList"].ToObject<QQMusicBean.Song[]>();
+            // 处理专辑ID链接 (albummid格式)
+            var albumIdMatch1 = Regex.Match(input, @"album\.html\?albummid=([^&]*)(&.*)?$");
+            if (albumIdMatch1.Success)
+            {
+                var albumId = albumIdMatch1.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.ALBUM_ID];
+                return Regex.Replace(input, @"album\.html\?albummid=[^&]*(&.*)?$", replacement + albumId);
+            }
+            
+            // 处理专辑ID链接 (albumId格式)
+            var albumIdMatch2 = Regex.Match(input, @"album\.html\?(.*&)?albumId=([^&]*)(&.*)?$");
+            if (albumIdMatch2.Success)
+            {
+                var albumId = albumIdMatch2.Groups[2].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.ALBUM_ID];
+                // 构建替换部分，保留?后albumId前的参数，然后替换为albumDetail页面
+                return Regex.Replace(input, @"album\.html\?.*albumId=[^&]*(&.*)?$", replacement + albumId + "$1");
+            }
 
-                    if (songs.Length > 0)
-                    {
-                        return new InputSongId(songs[0].Id, searchSource, searchType);
-                    }
-                }
+            // 处理播放列表ID链接
+            var playlistIdMatch = Regex.Match(input, @"taoge\.html\?id=([^&]*)(&.*)?$");
+            if (playlistIdMatch.Success)
+            {
+                var playlistId = playlistIdMatch.Groups[1].Value;
+                var replacement = SearchTypeKeywordDict[searchSource][SearchTypeEnum.PLAYLIST_ID];
+                return Regex.Replace(input, @"taoge\.html\?id=[^&]*(&.*)?$", replacement + playlistId);
             }
         }
 
-        throw new MusicLyricException(ErrorMsgConst.INPUT_ID_ILLEGAL);
+        return input;
     }
 
     /**
@@ -156,7 +186,7 @@ public static class GlobalUtils
      */
     public static bool CheckNum(string s)
     {
-        return Regex.IsMatch(s, "^\\d+$", RegexOptions.Compiled);
+        return NumberRegex().IsMatch(s);
     }
 
     /**
@@ -194,12 +224,12 @@ public static class GlobalUtils
 
         try
         {
-            foreach (Match match in new Regex(@"\$fillLength\([^\)]*\)").Matches(content))
+            foreach (Match match in FillLengthRegex().Matches(content))
             {
                 var raw = match.Value;
 
-                var leftQuote = raw.IndexOf("(", StringComparison.Ordinal) + 1;
-                var rightQuote = raw.IndexOf(")", StringComparison.Ordinal);
+                var leftQuote = raw.IndexOf('(') + 1;
+                var rightQuote = raw.IndexOf(')');
 
                 var split = raw.Substring(leftQuote, rightQuote - leftQuote).Split(',');
                 // 三个参数
@@ -220,7 +250,7 @@ public static class GlobalUtils
                 {
                     var diff = targetLength - res.Length;
 
-                    res = (diff < keyword.Length ? keyword.Substring(0, diff) : keyword) + res;
+                    res = (diff < keyword.Length ? keyword[..diff] : keyword) + res;
                 }
 
                 content = content.Replace(raw, res);
@@ -361,13 +391,25 @@ public static class GlobalUtils
 
     private static string ControlLength(string str)
     {
+        if (string.IsNullOrEmpty(str))
+            return string.Empty;
+        
         if (str.Length > 128)
         {
-            return str.Substring(0, 125) + "...";
+            return str[..125] + "...";
         }
         else
         {
             return str;
         }
     }
+
+    [GeneratedRegex("^[a-zA-Z0-9]*$")]
+    private static partial Regex LettersAndNumbersRegex();
+    
+    [GeneratedRegex("^\\d+$", RegexOptions.Compiled)]
+    private static partial Regex NumberRegex();
+    
+    [GeneratedRegex(@"\$fillLength\([^\)]*\)")]
+    private static partial Regex FillLengthRegex();
 }

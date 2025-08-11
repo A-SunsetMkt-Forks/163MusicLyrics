@@ -108,15 +108,15 @@ public class QQMusicApi : MusicCacheableApi
 
         if (isVerbatim)
         {
-            vo.Lyric = LyricUtils.DealVerbatimLyric4QQMusic(resp.Lyric);
-            vo.TranslateLyric = LyricUtils.DealVerbatimLyric4QQMusic(resp.Trans);
-            vo.TransliterationLyric = LyricUtils.DealVerbatimLyric4QQMusic(resp.Roma);
+            vo.Lyric = VerbatimLyricUtils.DealVerbatimLyric4QQMusic(resp.Lyric);
+            vo.TranslateLyric = VerbatimLyricUtils.DealVerbatimLyric4QQMusic(resp.Trans);
+            vo.TransliterationLyric = VerbatimLyricUtils.DealVerbatimLyric4QQMusic(resp.Roma);
         }
         else
         {
-            vo.Lyric = LyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Lyric);
-            vo.TranslateLyric = LyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Trans);
-            vo.TransliterationLyric = LyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Roma);
+            vo.Lyric = VerbatimLyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Lyric);
+            vo.TranslateLyric = VerbatimLyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Trans);
+            vo.TransliterationLyric = VerbatimLyricUtils.ConvertVerbatimLyricToCommonLyric4QQMusic(resp.Roma);
         }
 
         return new ResultVo<LyricVo>(vo);

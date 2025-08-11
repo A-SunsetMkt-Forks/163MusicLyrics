@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -29,6 +29,13 @@ public enum SearchTypeEnum
     [Description("单曲")] SONG_ID = 0,
     [Description("专辑")] ALBUM_ID = 1,
     [Description("歌单")] PLAYLIST_ID = 2,
+}
+
+public enum VerbatimLyricModeEnum
+{
+    [Description("不启用")] DISABLE = 0,
+    [Description("标准模式")] STANDARD_MODE = 1,
+    [Description("A2 模式")] A2_MODE = 2,
 }
 
 // 强制两位类型
@@ -448,15 +455,12 @@ public class LyricTimestamp : IComparable
     /// <summary>
     /// 初始化 LyricTimestamp
     /// </summary>
-    /// <param name="timestamp">[mm:ss.SSS] or [mm:ss]</param>
+    /// <param name="timestamp">[mm:ss.SSS] or [mm:ss] or [mm:ss:SSS]</param>
     public LyricTimestamp(string timestamp)
     {
-        if (string.IsNullOrWhiteSpace(timestamp) || timestamp[0] != '[' || timestamp[timestamp.Length - 1] != ']')
-        {
-            // 不支持的格式
-            TimeOffset = 0;
-        }
-        else
+        long timeOffset = 0; // 默认值
+        
+        if (!string.IsNullOrWhiteSpace(timestamp) && timestamp[0] == '[' && timestamp[timestamp.Length - 1] == ']')
         {
             timestamp = timestamp.Substring(1, timestamp.Length - 2);
 
@@ -464,22 +468,122 @@ public class LyricTimestamp : IComparable
 
             var minute = GlobalUtils.ToInt(split[0], 0);
 
-            int second = 0, millisecond = 0;
             if (split.Length > 1)
             {
-                split = split[1].Split('.');
-
-                second = GlobalUtils.ToInt(split[0], 0);
-
-                if (split.Length > 1)
+                int second = 0, millisecond = 0;
+                
+                // 处理秒和毫秒部分，支持点号分隔和冒号分隔
+                if (split[1].Contains('.'))
                 {
-                    // 三位毫秒，右填充 0
-                    millisecond = GlobalUtils.ToInt(split[1].PadRight(3, '0'), 0);
+                    // 处理 [mm:ss.SS] 或 [mm:ss.SSS] 格式
+                    var secondMilliSplit = split[1].Split('.');
+                    second = GlobalUtils.ToInt(secondMilliSplit[0], 0);
+                    
+                    if (secondMilliSplit.Length > 1)
+                    {
+                        var milliPart = secondMilliSplit[1];
+                        // 根据毫秒位数处理
+                        if (milliPart.Length == 1) 
+                        {
+                            // 1位毫秒数，乘以100
+                            millisecond = GlobalUtils.ToInt(milliPart, 0) * 100;
+                        }
+                        else if (milliPart.Length == 2)
+                        {
+                            // 2位毫秒数，乘以10
+                            millisecond = GlobalUtils.ToInt(milliPart, 0) * 10;
+                        }
+                        else
+                        {
+                            // 3位或更多毫秒数，取前3位
+                            if (milliPart.Length > 3)
+                            {
+                                milliPart = milliPart.Substring(0, 3);
+                            }
+                            millisecond = GlobalUtils.ToInt(milliPart, 0);
+                        }
+                    }
+                    
+                    timeOffset = (minute * 60 + second) * 1000 + millisecond;
+                }
+                else if (split.Length > 2 && split[2].Contains('.'))
+                {
+                    // 处理 [mm:ss:SS.SS] 或 [mm:ss:SS.SSS] 格式
+                    second = GlobalUtils.ToInt(split[1], 0);
+                    var milliSplit = split[2].Split('.');
+                    
+                    if (milliSplit.Length > 1)
+                    {
+                        var milliPart = milliSplit[1];
+                        // 根据毫秒位数处理
+                        if (milliPart.Length == 1) 
+                        {
+                            // 1位毫秒数，乘以100
+                            millisecond = GlobalUtils.ToInt(milliPart, 0) * 100;
+                        }
+                        else if (milliPart.Length == 2)
+                        {
+                            // 2位毫秒数，乘以10
+                            millisecond = GlobalUtils.ToInt(milliPart, 0) * 10;
+                        }
+                        else
+                        {
+                            // 3位或更多毫秒数，取前3位
+                            if (milliPart.Length > 3)
+                            {
+                                milliPart = milliPart.Substring(0, 3);
+                            }
+                            millisecond = GlobalUtils.ToInt(milliPart, 0);
+                        }
+                    }
+                    
+                    timeOffset = (minute * 60 + second) * 1000 + millisecond;
+                }
+                else if (split.Length > 2)
+                {
+                    // 处理 [mm:ss:SS] 或 [mm:ss:SSS] 格式
+                    second = GlobalUtils.ToInt(split[1], 0);
+                    var milliPart = split[2];
+                    
+                    // 根据毫秒位数处理
+                    if (milliPart.Length == 1) 
+                    {
+                        // 1位毫秒数，乘以100
+                        millisecond = GlobalUtils.ToInt(milliPart, 0) * 100;
+                    }
+                    else if (milliPart.Length == 2)
+                    {
+                        // 2位毫秒数，乘以10
+                        millisecond = GlobalUtils.ToInt(milliPart, 0) * 10;
+                    }
+                    else
+                    {
+                        // 3位或更多毫秒数，取前3位
+                        if (milliPart.Length > 3)
+                        {
+                            milliPart = milliPart.Substring(0, 3);
+                        }
+                        millisecond = GlobalUtils.ToInt(milliPart, 0);
+                    }
+                    
+                    timeOffset = (minute * 60 + second) * 1000 + millisecond;
+                }
+                else
+                {
+                    // 只有秒部分，没有毫秒 [mm:ss] 格式
+                    second = GlobalUtils.ToInt(split[1], 0);
+                    timeOffset = (minute * 60 + second) * 1000;
                 }
             }
-
-            TimeOffset = (minute * 60 + second) * 1000 + millisecond;
+            else
+            {
+                // 只有分钟部分 [mm] 格式
+                timeOffset = minute * 60 * 1000;
+            }
         }
+        
+        // 设置最终的TimeOffset值
+        TimeOffset = timeOffset;
     }
 
     public int CompareTo(object input)
@@ -545,11 +649,12 @@ public class LyricTimestamp : IComparable
         {
             if (dotType == DotTypeEnum.DOWN)
             {
-                offset = TimeOffset / 10 * 10;
+                offset = TimeOffset / (int)Math.Pow(10, 3 - msDigit) * (int)Math.Pow(10, 3 - msDigit);
             }
             else
             {
-                offset = (TimeOffset + 5) / 10 * 10;
+                var divisor = (int)Math.Pow(10, 3 - msDigit);
+                offset = (TimeOffset + divisor/2) / divisor * divisor;
             }
         }
 
@@ -604,6 +709,11 @@ public class LyricTimestamp : IComparable
 /// </summary>
 public class LyricLineVo : IComparable
 {
+    /// <summary>
+    /// 公共时间戳正则表达式模式，匹配 [mm:ss] 或 [mm:ss.SSS] 或 [mm:ss:SSS] 格式
+    /// </summary>
+    public const string TimestampPattern = @"\[\d+:\d+(?:[.:]\d+)?]";
+    
     public LyricTimestamp Timestamp { get; set; }
 
     /// <summary>
@@ -619,8 +729,8 @@ public class LyricLineVo : IComparable
 
     public LyricLineVo(string lyricLine)
     {
-        if (LyricUtils.VerbatimLegalPrefixRegex.IsMatch(lyricLine) ||
-            LyricUtils.CommonLegalPrefixRegex.IsMatch(lyricLine))
+        if (VerbatimLyricUtils.GetVerbatimLegalPrefixRegex().IsMatch(lyricLine) ||
+            LyricUtils.GetCommonLegalPrefixRegex().IsMatch(lyricLine))
         {
             var index = lyricLine.IndexOf("]", StringComparison.Ordinal);
             Timestamp = new LyricTimestamp(lyricLine[..(index + 1)]);
@@ -635,10 +745,8 @@ public class LyricLineVo : IComparable
 
     public static List<LyricLineVo> Split(LyricLineVo main)
     {
-        const string timestampPattern = @"\[\d+:\d+.\d+]";
-
         var mainContent = main.Content;
-        var mc = Regex.Matches(mainContent, timestampPattern);
+        var mc = Regex.Matches(mainContent, TimestampPattern);
 
         // not exist sub
         if (mc.Count == 0)
@@ -660,7 +768,7 @@ public class LyricLineVo : IComparable
                 timestampIndex = mainContent.IndexOf(timestamp, StringComparison.Ordinal);
 
                 // add first
-                result.Add(new LyricLineVo(mainContent.Substring(0, timestampIndex), main.Timestamp));
+                result.Add(new LyricLineVo(mainContent[..timestampIndex], main.Timestamp));
             }
 
             // find next timestamp
@@ -678,7 +786,7 @@ public class LyricLineVo : IComparable
             else
             {
                 // already in end
-                var content = mainContent.Substring(timestampIndex + timestamp.Length);
+                var content = mainContent[(timestampIndex + timestamp.Length)..];
                 result.Add(new LyricLineVo(content, new LyricTimestamp(timestamp)));
             }
 
@@ -795,11 +903,13 @@ public static class EnumHelper
     public static string ToDescription(this Enum val)
     {
         var type = val.GetType();
-        var memberInfo = type.GetMember(val.ToString());
+        var name = val.ToString();
+        var memberInfo = type.GetMember(name);
         var attributes = memberInfo[0].GetCustomAttributes(typeof(DescriptionAttribute), false);
         //如果没有定义描述，就把当前枚举值的对应名称返回
-        if (attributes == null || attributes.Length != 1) return val.ToString();
+        if (attributes.Length != 1) 
+            return name;
 
-        return (attributes.Single() as DescriptionAttribute)?.Description;
+        return (attributes.Single() as DescriptionAttribute)?.Description ?? string.Empty;
     }
 }

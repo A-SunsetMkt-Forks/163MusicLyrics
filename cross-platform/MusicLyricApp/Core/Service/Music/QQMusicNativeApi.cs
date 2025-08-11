@@ -69,11 +69,11 @@ public class QQMusicNativeApi(Func<string> cookieFunc) : BaseNativeApi(cookieFun
         return resp.ToEntity<QQMusicBean.MusicFcgApiResult>();
     }
 
-    public QQMusicBean.AlbumResult GetAlbum(string albumMid)
+    public QQMusicBean.AlbumResult GetAlbum(string albumId)
     {
         var data = new Dictionary<string, string>
         {
-            { "albummid", albumMid }
+            { GlobalUtils.CheckNum(albumId) ? "albumid" : "albummid", albumId }
         };
 
         var resp = SendPost("https://c.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg", data);
